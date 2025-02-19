@@ -3,6 +3,14 @@ import Tkinter as tk
 import math
 import tkFileDialog
 
+# Global variables
+angle_x = 0
+angle_y = 0
+angle_z = 0
+
+last_mouse_x = 0
+last_mouse_y = 0
+
 def read_stl_binary():
     filename = tkFileDialog.askopenfilename(title="Select STL File", filetypes=[("STL files", "*.stl")])
     
@@ -44,15 +52,30 @@ def rotate_point (x, y, z, angle_x, angle_y, angle_z):
 
     return x, y, z
 
+def on_mouse_press(event):
+    global last_mouse_x, last_mouse_y
+    last_mouse_x = event.x
+    last_mouse_y = event.y
+
+def on_mouse_drag(event):
+    global angle_x, angle_y, last_mouse_x, last_mouse_y
+
+    dx = event.x - last_mouse_x
+    dy = event.y - last_mouse_y
+
+    angle_y -= dx * 0.01
+    angle_x += dy *0.01
+
+    last_mouse_x = event.x
+    last_mouse_y = event.y
+
 def project (x, y, z):
     scale = scale_slider.get()
     distance = distance_slider.get()
-
     factor = scale / (z + distance)
     return x * factor + 200, -y * factor + 200
 
 def update():
-    global angle_x, angle_y, angle_z
     canvas.delete("all")
 
     projected_vertices = [project(*rotate_point(x, y, z, angle_x, angle_y, angle_z)) for x, y, z in cube_vertices]
@@ -67,10 +90,6 @@ def update():
     canvas.create_text(200, 375, text=name_text, fill="green")
     vert_count_text = "Vertices Count:", vert_count
     canvas.create_text(200, 390, text=vert_count_text, fill="green")
-
-    #angle_x += 0.05
-    angle_y += 0.03
-    #angle_z += 0.02
 
     root.after(50, update)
 
@@ -93,9 +112,8 @@ distance_slider = tk.Scale(root, from_=5, to=50, orient="horizontal", label="Dis
 distance_slider.set(50)
 distance_slider.pack()
 
-angle_x = angle_y = angle_z = 0
-
-angle_x = 30
+canvas.bind("<ButtonPress-1>", on_mouse_press)
+canvas.bind("<B1-Motion>", on_mouse_drag)
 
 print(cube_vertices[:5])
 print(list(cube_edges)[:5])
