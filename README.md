@@ -1,5 +1,5 @@
 # Py2-STL-Visualizer
-v.1.0.0
+v.1.2.1
 
  Simple STL Visualizer in Python 2 with built-in packages only.
  
