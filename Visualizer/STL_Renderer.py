@@ -1,6 +1,6 @@
 import struct
-import Tkinter as tk
 import math
+import Tkinter as tk
 import tkFileDialog
 
 # Global variables
@@ -11,13 +11,19 @@ angle_z = 0
 last_mouse_x = 0
 last_mouse_y = 0
 
-def read_stl_binary():
-    filename = tkFileDialog.askopenfilename(title="Select STL File", filetypes=[("STL files", "*.stl")])
-    
-    vertices = []
-    edges = set()
+vertices = []
+edges = set()
 
-    f = open(filename, "rb")
+def open_file():
+    global vertices, edges
+    filename = tkFileDialog.askopenfilename(title="Select STL File", filetypes=[("STL files", "*.stl")])
+    vertices, edges = read_stl_binary(filename)
+
+def read_stl_binary(_filename):
+    _vertices = []
+    _edges = set()
+
+    f = open(_filename, "rb")
     f.seek(80)
     num_triangles = struct.unpack('<I', f.read(4))[0]
 
@@ -26,19 +32,23 @@ def read_stl_binary():
         v1 = struct.unpack('<3f', f.read(12))
         v2 = struct.unpack('<3f', f.read(12))
         v3 = struct.unpack('<3f', f.read(12))
-        vertices.extend([v1, v2, v3])
+        _vertices.extend([v1, v2, v3])
 
-        v1_index = len(vertices) - 3
-        v2_index = len(vertices) - 2
-        v3_index = len(vertices) - 1
+        v1_index = len(_vertices) - 3
+        v2_index = len(_vertices) - 2
+        v3_index = len(_vertices) - 1
 
-        edges.add(tuple(sorted([v1_index, v2_index])))
-        edges.add(tuple(sorted([v2_index, v3_index])))
-        edges.add(tuple(sorted([v3_index, v1_index])))
+        _edges.add(tuple(sorted([v1_index, v2_index])))
+        _edges.add(tuple(sorted([v2_index, v3_index])))
+        _edges.add(tuple(sorted([v3_index, v1_index])))
 
         f.read(2)
 
-    return vertices, edges
+    return _vertices, _edges
+
+def reset_pos():
+    global angle_x, angle_y, angle_z
+    angle_x = angle_z = angle_y = 0
 
 def rotate_point (x, y, z, angle_x, angle_y, angle_z):
     cos_x, sin_x = math.cos(angle_x), math.sin(angle_x)
@@ -64,7 +74,7 @@ def on_mouse_drag(event):
     dy = event.y - last_mouse_y
 
     angle_y -= dx * 0.01
-    angle_x += dy *0.01
+    angle_x += dy * 0.01
 
     last_mouse_x = event.x
     last_mouse_y = event.y
@@ -76,11 +86,12 @@ def project (x, y, z):
     return x * factor + 200, -y * factor + 200
 
 def update():
+    global cube_edge, vertices
     canvas.delete("all")
 
-    projected_vertices = [project(*rotate_point(x, y, z, angle_x, angle_y, angle_z)) for x, y, z in cube_vertices]
+    projected_vertices = [project(*rotate_point(x, y, z, angle_x, angle_y, angle_z)) for x, y, z in vertices]
 
-    for v1, v2 in cube_edges:
+    for v1, v2 in edges:
         x1, y1 = projected_vertices[v1]
         x2, y2 = projected_vertices[v2]
         canvas.create_line(x1, y1, x2, y2, fill="green")
@@ -94,13 +105,23 @@ def update():
     root.after(50, update)
 
 def get_file_data():
-    return stl_file, len(cube_vertices)
+    return stl_file, len(vertices)
 
 stl_file = "bulbasaur.stl"
-cube_vertices, cube_edges = read_stl_binary()
+open_file()
 
 root = tk.Tk()
 root.title("3D goes brrr")
+
+navbar = tk.Frame(root, bg="gray", height=40)
+navbar.pack(fill="x", side="top")
+
+open_button = tk.Button(navbar, text="Open", command=open_file)
+reset_button = tk.Button(navbar, text="Reset", command=reset_pos)
+
+open_button.pack(side="left", padx=5, pady=5)
+reset_button.pack(side="left", padx=5, pady=5)
+
 canvas = tk.Canvas(root, width=400, height=400, bg="black")
 canvas.pack()
 
@@ -115,8 +136,8 @@ distance_slider.pack()
 canvas.bind("<ButtonPress-1>", on_mouse_press)
 canvas.bind("<B1-Motion>", on_mouse_drag)
 
-print(cube_vertices[:5])
-print(list(cube_edges)[:5])
+print(vertices[:5])
+print(list(edges)[:5])
 
 update()
 root.mainloop()
