@@ -7,6 +7,9 @@ import tkFileDialog
 angle_x = 0
 angle_y = 0
 angle_z = 0
+scale = 50
+offset_x = 0
+offset_y = 0
 
 last_mouse_x = 0
 last_mouse_y = 0
@@ -67,23 +70,33 @@ def on_mouse_press(event):
     last_mouse_x = event.x
     last_mouse_y = event.y
 
-def on_mouse_drag(event):
+def on_mouse_drag_left(event):
     global angle_x, angle_y, last_mouse_x, last_mouse_y
-
     dx = event.x - last_mouse_x
     dy = event.y - last_mouse_y
-
     angle_y -= dx * 0.01
     angle_x += dy * 0.01
-
     last_mouse_x = event.x
     last_mouse_y = event.y
 
+def on_mouse_drag_right(event):
+    global offset_x, offset_y, last_mouse_x, last_mouse_y
+    dx = event.x - last_mouse_x
+    dy = event.y - last_mouse_y
+    offset_x += dx
+    offset_y += dy
+    last_mouse_x = event.x
+    last_mouse_y = event.y    
+
+def on_mouse_wheel(event):
+    global scale
+    scale += event.delta * 10
+    scale = max(10, min(300, scale))
+
 def project (x, y, z):
-    scale = scale_slider.get()
-    distance = distance_slider.get()
-    factor = scale / (z + distance)
-    return x * factor + 200, -y * factor + 200
+    global scale, offset_x, offset_y
+    factor = scale / (z + 50)
+    return x * factor + 200 + offset_x, -y * factor + 200 + offset_y
 
 def update():
     global cube_edge, vertices
@@ -111,7 +124,7 @@ stl_file = "bulbasaur.stl"
 open_file()
 
 root = tk.Tk()
-root.title("3D goes brrr")
+root.title("3D STL Visualizer")
 
 navbar = tk.Frame(root, bg="gray", height=40)
 navbar.pack(fill="x", side="top")
@@ -125,19 +138,11 @@ reset_button.pack(side="left", padx=5, pady=5)
 canvas = tk.Canvas(root, width=400, height=400, bg="black")
 canvas.pack()
 
-scale_slider = tk.Scale(root, from_=50, to=200, orient="horizontal", label="Scale", length=400)
-scale_slider.set(100)
-scale_slider.pack()
-
-distance_slider = tk.Scale(root, from_=5, to=50, orient="horizontal", label="Distance", length=400)
-distance_slider.set(50)
-distance_slider.pack()
-
 canvas.bind("<ButtonPress-1>", on_mouse_press)
-canvas.bind("<B1-Motion>", on_mouse_drag)
-
-print(vertices[:5])
-print(list(edges)[:5])
+canvas.bind("<B1-Motion>", on_mouse_drag_left)
+canvas.bind("<ButtonPress-3>", on_mouse_press)
+canvas.bind("<B3-Motion>", on_mouse_drag_right)
+canvas.bind("<MouseWheel>", on_mouse_wheel)
 
 update()
 root.mainloop()
